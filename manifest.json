@@ -1,0 +1,17 @@
+{
+  "name": "Nómina Activa",
+  "short_name": "NominaActiva",
+  "description": "Control de personal y adelantos de nómina",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6b1f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
