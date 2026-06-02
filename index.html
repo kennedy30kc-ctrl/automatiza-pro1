@@ -14,94 +14,74 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyCiHidpoOeuc4kOKRJBp1WBQpXgJHH1uGK",
-    authDomain: "automatiza-pro.firebaseapp.com",
-    projectId: "automatiza-pro",
-    storageBucket: "automatiza-pro.firebasestorage.app",
-    messagingSenderId: "470358165821",
-    appId: "1:470358165821:web:db093869626cce096f1d54"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.storage = {
-    async get(key, shared=true) {
-      try {
-        const ref = doc(db, shared ? "shared" : "private", key.replace(/[^a-zA-Z0-9_-]/g,"_"));
-        const snap = await getDoc(ref);
-        if (!snap.exists()) return null;
-        return { key, value: snap.data().value, shared };
-      } catch(e) { return null; }
-    },
-    async set(key, value, shared=true) {
-      try {
-        const ref = doc(db, shared ? "shared" : "private", key.replace(/[^a-zA-Z0-9_-]/g,"_"));
-        await setDoc(ref, { value, key, updatedAt: new Date().toISOString() });
-        return { key, value, shared };
-      } catch(e) { return null; }
-    },
-    async delete(key, shared=true) {
-      try {
-        const ref = doc(db, shared ? "shared" : "private", key.replace(/[^a-zA-Z0-9_-]/g,"_"));
-        await deleteDoc(ref);
-        return { key, deleted: true, shared };
-      } catch(e) { return null; }
-    },
-    async list(prefix="", shared=true) {
-      try {
-        const col = collection(db, shared ? "shared" : "private");
-        const snap = await getDocs(col);
-        const keys = snap.docs.map(d => d.data().key || d.id).filter(k => k.startsWith(prefix));
-        return { keys, prefix, shared };
-      } catch(e) { return { keys: [] }; }
-    }
-  };
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyCihidpoOeuc4kOKRJBplWBQpXgJHHluGk",
+  authDomain: "automatiza-pro.firebaseapp.com",
+  projectId: "automatiza-pro",
+  storageBucket: "automatiza-pro.firebasestorage.app",
+  messagingSenderId: "470358165821",
+  appId: "1:470358165821:web:db093869626cce096f1d54"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.storage = {
+  async get(key, shared=true) {
+    try { const r = await getDoc(doc(db, shared?"shared":"personal", key.replace(/[\/\\]/g,"_"))); return r.exists()?{key,value:r.data().value,shared}:null; } catch{return null;}
+  },
+  async set(key, value, shared=true) {
+    try { await setDoc(doc(db, shared?"shared":"personal", key.replace(/[\/\\]/g,"_")), {key,value,shared,updatedAt:Date.now()}); return {key,value,shared}; } catch{return null;}
+  },
+  async delete(key, shared=true) {
+    try { await deleteDoc(doc(db, shared?"shared":"personal", key.replace(/[\/\\]/g,"_"))); return {key,deleted:true,shared}; } catch{return null;}
+  },
+  async list(prefix="", shared=true) {
+    try { const s=await getDocs(collection(db,shared?"shared":"personal")); return {keys:s.docs.map(d=>d.data().key).filter(k=>k&&k.startsWith(prefix)),prefix,shared}; } catch{return {keys:[]};}
+  }
+};
+window.dispatchEvent(new Event('firebaseReady'));
 </script>
 </head>
-<body style="margin:0;padding:0;background:#0f172a">
+<body style="margin:0;padding:0;">
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
+<script type="text/babel" data-type="module">
 const { useState, useEffect, useRef, useCallback } = React;
-const XLSX_LIB = window.XLSX;
+const XLSX = window.XLSX;
+const { createElement: h } = React;
+const mkIcon = (paths) => ({ size=24, className="", style={} }) => h("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round",className,style}, ...paths.map(d=>h("path",{d})));
+const LogIn = mkIcon(["M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4","M10 17l5-5-5-5","M15 12H3"]);
+const LogOut = mkIcon(["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4","M16 17l5-5-5-5","M21 12H9"]);
+const CreditCard = mkIcon(["M1 4h22v16H1z","M1 10h22"]);
+const QrCode = ({size=24,className="",style={}}) => h("svg",{width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,className,style},h("rect",{x:"3",y:"3",width:"7",height:"7"}),h("rect",{x:"14",y:"3",width:"7",height:"7"}),h("rect",{x:"3",y:"14",width:"7",height:"7"}),h("path",{d:"M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"}));
+const CheckCircle2 = mkIcon(["M22 11.08V12a10 10 0 1 1-5.93-9.14","M22 4L12 14.01l-3-3"]);
+const AlertCircle = mkIcon(["M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z","M12 8v4","M12 16h.01"]);
+const Home = mkIcon(["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10"]);
+const Settings = mkIcon(["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z","M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"]);
+const Users = mkIcon(["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2","M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z","M23 21v-2a4 4 0 0 0-3-3.87","M16 3.13a4 4 0 0 1 0 7.75"]);
+const Building2 = mkIcon(["M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18z","M6 12H4a2 2 0 0 0-2 2v8h4","M18 9h2a2 2 0 0 1 2 2v11h-4","M10 6h4","M10 10h4","M10 14h4","M10 18h4"]);
+const Phone = mkIcon(["M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.72a16 16 0 0 0 5.37 5.37l1.42-1.42a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.01z"]);
+const Mail = mkIcon(["M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z","M22 6l-10 7L2 6"]);
+const MapPin = mkIcon(["M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z","M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"]);
+const Eye = mkIcon(["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z","M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"]);
+const EyeOff = mkIcon(["M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94","M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19","M1 1l22 22","M14.12 14.12a3 3 0 1 1-4.24-4.24"]);
+const Edit2 = mkIcon(["M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"]);
+const Trash2 = mkIcon(["M3 6h18","M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2","M10 11v6","M14 11v6"]);
+const Shield = mkIcon(["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"]);
+const BarChart3 = mkIcon(["M18 20V10","M12 20V4","M6 20v-6"]);
+const ChevronLeft = mkIcon(["M15 18l-6-6 6-6"]);
+const ChevronRight = mkIcon(["M9 18l6-6-6-6"]);
+const RefreshCw = mkIcon(["M23 4v6h-6","M1 20v-6h6","M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"]);
+const Check = mkIcon(["M20 6L9 17l-5-5"]);
+const X = mkIcon(["M18 6L6 18","M6 6l12 12"]);
+const AlertTriangle = mkIcon(["M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z","M12 9v4","M12 17h.01"]);
+const Key = mkIcon(["M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"]);
+const Bell = mkIcon(["M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9","M13.73 21a2 2 0 0 1-3.46 0"]);
+const Download = mkIcon(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M7 10l5 5 5-5","M12 15V3"]);
+const FileSpreadsheet = mkIcon(["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z","M14 2v6h6","M8 13h2","M8 17h2","M14 13h2","M14 17h2"]);
 
-// Lucide icons shim
-const iconProps = (size=24) => ({ width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" });
-const LogIn = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>;
-const LogOut = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
-const CreditCard = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
-const QrCode = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="16" y="16" width="3" height="3" fill="currentColor" stroke="none"/><rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"/></svg>;
-const CheckCircle2 = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>;
-const AlertCircle = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
-const Home = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
-const Settings = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
-const Users = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const Building2 = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M6 12H4a2 2 0 0 0-2 2v8h4"/><path d="M18 9h2a2 2 0 0 1 2 2v11h-4"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>;
-const Eye = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-const EyeOff = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
-const Edit2 = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>;
-const Trash2 = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
-const Shield = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
-const BarChart3 = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>;
-const ChevronLeft = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><polyline points="15 18 9 12 15 6"/></svg>;
-const ChevronRight = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><polyline points="9 18 15 12 9 6"/></svg>;
-const RefreshCw = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
-const Check = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><polyline points="20 6 9 17 4 12"/></svg>;
-const X = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const AlertTriangle = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-const Key = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>;
-const Bell = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
-const Download = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-const FileSpreadsheet = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>;
-const Phone = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.79-1.79a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
-const Mail = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
-const MapPin = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
-
-// XLSX shim
-const XLSX = { utils: window.XLSX?.utils, writeFile: window.XLSX?.writeFile };
 // ══════════════════════════════════════════
 // LOGOS
 // ══════════════════════════════════════════
@@ -495,7 +475,7 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
   );
 }
 
-export default function App() {
+function App() {
   const [screen, setScreen] = useState("loading");
   const [empresa, setEmpresa] = useState(null);
   const [empId, setEmpId] = useState(null);
@@ -562,15 +542,13 @@ export default function App() {
   const [allEmpresas, setAllEmpresas] = useState([]);
   const [selEmpresa, setSelEmpresa] = useState(null);
   const [selEmpId2, setSelEmpId2] = useState(null);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [nominaFreq, setNominaFreq] = useState("mensual");
 
   // helpers: get current employee fresh from empresa state
   const getEmpleado = useCallback((id, emp = empresa) => emp?.empleados?.find(e => e.id === id) || null, [empresa]);
 
   useEffect(() => {
     ["https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
-     "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"].forEach(src => {
+     "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"].forEach(src => {
       if (!document.querySelector(`script[src="${src}"]`)) {
         const s = document.createElement("script"); s.src = src; document.head.appendChild(s);
       }
@@ -683,9 +661,8 @@ export default function App() {
     const nombre = nombreInput.trim();
     const clave = claveInput.trim();
     if (!nombre || !clave) { flash("Completa nombre y clave", "err"); return; }
-    // Match by clave first (primary), then fallback name+clave case-insensitive
-    let emp = empresa?.empleados?.find(e => e.clave === clave && e.nombre.toLowerCase() === nombre.toLowerCase());
-    if (!emp) emp = empresa?.empleados?.find(e => e.clave === clave);
+    // Look for existing employee (match name + clave)
+    let emp = empresa?.empleados?.find(e => e.nombre.toLowerCase() === nombre.toLowerCase() && e.clave === clave);
     if (!emp) {
       // New employee self-registration
       emp = {
@@ -862,17 +839,6 @@ export default function App() {
     flash("✅ Cuota marcada como pagada");
   };
 
-
-  // Mark cuota as cobrada from jefe panel (local empresa)
-  const marcarCuotaCobradaJefe = (pId, cIdx) => {
-    const nuevos = empresa.prestamos.map(p => {
-      if (p.id !== pId) return p;
-      const cuotas = p.cuotas.map((c, i) => i === cIdx ? { ...c, estado: "pagado", pagado: new Date().toLocaleDateString("es-ES") } : c);
-      return { ...p, cuotas, estado: cuotas.every(c => c.estado === "pagado") ? "pagado" : "activo" };
-    });
-    save({ ...empresa, prestamos: nuevos });
-    flash("✅ Cuota cobrada y registrada");
-  };
   // ── SETUP ──
   const configurar = async () => {
     if (!sNombre.trim() || !sClave.trim()) { flash("Completa todos los campos", "err"); return; }
@@ -884,7 +850,7 @@ export default function App() {
     const lista = await st.get("empresas_lista") || [];
     await st.set("empresas_lista", [...lista.filter(e => e.id !== id), { id, nombre: sNombre.trim() }]);
     await st.set(`empresa:${id}`, nueva);
-    setEmpId(id); setEmpresa(nueva); setShowWelcome(true);
+    setEmpId(id); setEmpresa(nueva); setScreen("principal");
   };
 
   // ── DASHBOARD HELPERS ──
@@ -1129,49 +1095,6 @@ export default function App() {
   if (screen === "loading") return (
     <div style={{ backgroundColor: "#0f172a", minHeight: "100vh" }} className="flex items-center justify-center">
       <div className="text-center"><LogoAP size={80}/><p className="mt-4 text-sm" style={{ color: "#94a3b8" }}>Iniciando...</p></div>
-    </div>
-  );
-
-
-  // WELCOME SCREEN (shown after first setup)
-  if (showWelcome) return (
-    <div style={{ backgroundColor: "#0f172a", minHeight: "100vh" }} className="text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-6"><div className="flex justify-center mb-4"><LogoAP size={90}/></div>
-          <h1 className="text-3xl font-bold" style={{ color: "#10b981" }}>¡Sistema Listo!</h1>
-          <p className="text-sm mt-2" style={{ color: "#94a3b8" }}>Tu empresa ha sido configurada correctamente</p>
-        </div>
-        <div className="rounded-xl p-6 mb-4" style={{ backgroundColor: "#1e293b", border: "1px solid #10b98133" }}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-full p-2" style={{ backgroundColor: "#10b98122" }}><Shield size={24} style={{ color: "#10b981" }}/></div>
-            <div>
-              <p className="font-bold" style={{ color: "#10b981" }}>🔒 Tus datos están protegidos</p>
-              <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Información privada y segura</p>
-            </div>
-          </div>
-          <div className="space-y-3 text-sm" style={{ color: "#94a3b8" }}>
-            <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "#0f172a" }}>
-              <span className="text-lg">🏢</span>
-              <p><strong style={{ color: "white" }}>Esta tablet es exclusiva</strong> para tu empresa. Solo tus empleados pueden registrar entradas y salidas aquí.</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "#0f172a" }}>
-              <span className="text-lg">🔐</span>
-              <p><strong style={{ color: "white" }}>Solo tú tienes acceso</strong> al Panel Jefe con tu clave personal. Nadie más puede ver la información administrativa.</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "#0f172a" }}>
-              <span className="text-lg">📊</span>
-              <p><strong style={{ color: "white" }}>Los datos se sincronizan</strong> únicamente con el panel central de Nómina Activa, al que solo accede el administrador autorizado con clave maestra.</p>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: "#0f172a" }}>
-              <span className="text-lg">🚫</span>
-              <p><strong style={{ color: "white" }}>Ningún tercero</strong> puede ver, modificar ni eliminar la información de tu empresa sin las credenciales correctas.</p>
-            </div>
-          </div>
-        </div>
-        <button onClick={() => { setShowWelcome(false); setScreen("principal"); }} className="w-full py-4 rounded-xl font-bold text-white text-lg" style={{ backgroundColor: "#10b981" }}>
-          ✅ ENTENDIDO — INGRESAR AL SISTEMA
-        </button>
-      </div>
     </div>
   );
 
@@ -1683,55 +1606,12 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Salary earnings highlight card */}
-                    {s ? (
-                      <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: "#0a1f0a", border: "1px solid #10b98155" }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-bold" style={{ color: "#10b981" }}>
-                            💵 {dashPeriodo === "hoy" ? "Ganancia de hoy" : dashPeriodo === "semana" ? "Ganancia esta semana" : dashPeriodo === "quincenal" ? "Ganancia 15 días" : "Ganancia este mes"}
-                          </p>
-                          <p className="text-xs" style={{ color: "#475569" }}>${(s.salarioMensual / s.diasLaborales / 8).toFixed(2)}/h</p>
-                        </div>
-                        <div className="flex items-end gap-3">
-                          <p className="text-3xl font-black" style={{ color: horasPeriodo > 0 ? "#10b981" : "#334155" }}>
-                            ${(horasPeriodo * tarifa).toFixed(2)}
-                          </p>
-                          <div className="mb-1">
-                            <p className="text-xs" style={{ color: "#64748b" }}>{horasPeriodo.toFixed(1)} horas trabajadas</p>
-                            <p className="text-xs" style={{ color: "#475569" }}>Salario base: ${s.salarioMensual}/mes</p>
-                          </div>
-                        </div>
-                        {/* Descuento por préstamo si aplica */}
-                        {(() => {
-                          const cuotasPendientes = ps.flatMap(p => p.cuotas?.filter(c => c.estado === "pendiente") || []);
-                          const descuento = cuotasPendientes.reduce((sum, c) => sum + (c.monto || 0), 0);
-                          const neto = (horasPeriodo * tarifa) - descuento;
-                          if (descuento <= 0) return null;
-                          return (
-                            <div className="mt-2 pt-2" style={{ borderTop: "1px solid #1e3a1e" }}>
-                              <div className="flex justify-between text-xs">
-                                <span style={{ color: "#ef4444" }}>- Descuento préstamo:</span>
-                                <span style={{ color: "#ef4444" }} className="font-bold">-${descuento.toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between text-xs mt-0.5">
-                                <span style={{ color: "#f59e0b" }} className="font-bold">Neto a pagar:</span>
-                                <span style={{ color: "#f59e0b" }} className="font-bold">${neto.toFixed(2)}</span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl p-3 mb-3 text-center" style={{ backgroundColor: "#1a1000", border: "1px solid #f59e0b44" }}>
-                        <p className="text-xs" style={{ color: "#f59e0b" }}>⚠️ Sin salario configurado — ve a Gestionar Empleados para asignar salario</p>
-                      </div>
-                    )}
-
                     {/* Period summary mini */}
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <div className="rounded p-2" style={{ backgroundColor: "#0f172a" }}>
                         <p className="text-xs" style={{ color: "#475569" }}>Horas período</p>
                         <p className="font-bold" style={{ color: "#06b6d4" }}>{horasPeriodo.toFixed(1)}h</p>
+                        <p className="text-xs" style={{ color: "#10b981" }}>${(horasPeriodo * tarifa).toFixed(2)}</p>
                       </div>
                       <div className="rounded p-2" style={{ backgroundColor: "#0f172a" }}>
                         <p className="text-xs" style={{ color: "#475569" }}>Faltas / Permisos</p>
@@ -1883,241 +1763,75 @@ export default function App() {
       </div>
     );
 
-    // Nómina Resumen
-    if (jefeSub === "nomina_resumen") {
-      const freq = empresa?.configNomina?.frecuencia || nominaFreq || "mensual";
-      const freqDias = freq === "semanal" ? 7 : freq === "quincenal" ? 15 : 30;
-      const resDates = getDatesForPeriod(freq === "semanal" ? "semana" : freq === "quincenal" ? "quincenal" : "mes");
-      const hoy = new Date();
-      const periodoLabel = freq === "semanal"
-        ? `Semana del ${resDates[0]?.toLocaleDateString("es-ES", { day: "numeric", month: "short" })} al ${resDates[resDates.length-1]?.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`
-        : freq === "quincenal"
-        ? `Quincena del ${resDates[0]?.toLocaleDateString("es-ES", { day: "numeric", month: "short" })} al ${resDates[resDates.length-1]?.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`
-        : `Mes de ${hoy.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}`;
-
-      return (
-        <div style={{ backgroundColor: "#0f172a", minHeight: "100vh" }} className="text-white p-4">
-          <div className="max-w-md mx-auto mt-4">
-            <BackBtn onClick={() => setJefeSub("menu")} label="Panel Jefe"/>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-xl p-3" style={{ backgroundColor: "#10b98122" }}>
-                <FileSpreadsheet size={28} style={{ color: "#10b981" }}/>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold" style={{ color: "#10b981" }}>Resumen de Nómina</h2>
-                <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{periodoLabel}</p>
-              </div>
-            </div>
-            <FlashMsg msg={msg}/>
-
-            {/* Frequency selector */}
-            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#1e293b" }}>
-              <p className="text-sm font-bold mb-3" style={{ color: "#94a3b8" }}>Frecuencia de pago de esta empresa</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[["semanal","Semanal","7 días"], ["quincenal","Quincenal","15 días"], ["mensual","Mensual","30 días"]].map(([val, lbl, sub]) => (
-                  <button key={val} onClick={() => {
-                    setNominaFreq(val);
-                    save({ ...empresa, configNomina: { ...empresa.configNomina, frecuencia: val } });
-                  }} className="py-3 rounded-xl text-center font-bold transition-all" style={{ backgroundColor: freq === val ? "#10b981" : "#0f172a", color: freq === val ? "white" : "#64748b" }}>
-                    <p className="text-sm">{lbl}</p>
-                    <p className="text-xs opacity-70">{sub}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Per employee breakdown */}
-            <div className="space-y-4">
-              {(empresa?.empleados || []).map(emp => {
-                const s = getSal(emp.id);
-                const tarifa = s ? s.salarioMensual / s.diasLaborales / 8 : 0;
-                const statuses = resDates.map(d => getEmpStatusForDate(emp, d));
-                const horasPeriodo = statuses.reduce((sum, st) => sum + (st.horasTrabajadas ? parseFloat(st.horasTrabajadas) : 0), 0);
-                const ganancia = horasPeriodo * tarifa;
-                const prestamosActivos = (empresa?.prestamos || []).filter(p => p.empId === emp.id && p.estado === "activo");
-                const cuotasPendientes = prestamosActivos.flatMap(p => {
-                  const proxCuota = p.cuotas?.find(c => c.estado === "pendiente");
-                  return proxCuota ? [{ ...proxCuota, prestamoId: p.id, prestamoIdx: p.cuotas.indexOf(proxCuota) }] : [];
-                });
-                const totalDescuento = cuotasPendientes.reduce((s, c) => s + (c.monto || 0), 0);
-                const neto = ganancia - totalDescuento;
-
-                return (
-                  <div key={emp.id} className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1e293b" }}>
-                    {/* Header */}
-                    <div className="p-4" style={{ backgroundColor: "#1e293b" }}>
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-full flex items-center justify-center font-black text-lg" style={{ width: 44, height: 44, backgroundColor: "#0f172a", color: "#10b981" }}>
-                          {emp.nombre[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-lg">{emp.nombre}</p>
-                          <p className="text-xs" style={{ color: "#64748b" }}>{s ? `$${s.salarioMensual}/mes · $${tarifa.toFixed(2)}/h` : "Sin salario configurado"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Earnings breakdown */}
-                    <div className="p-4" style={{ backgroundColor: "#0f172a" }}>
-                      {s ? (
-                        <>
-                          <div className="flex justify-between items-center mb-3">
-                            <div>
-                              <p className="text-xs" style={{ color: "#64748b" }}>Horas trabajadas</p>
-                              <p className="text-2xl font-black" style={{ color: "#06b6d4" }}>{horasPeriodo.toFixed(1)}h</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs" style={{ color: "#64748b" }}>Ganancia bruta</p>
-                              <p className="text-2xl font-black" style={{ color: "#10b981" }}>${ganancia.toFixed(2)}</p>
-                            </div>
-                          </div>
-
-                          {/* Loans detail */}
-                          {cuotasPendientes.length > 0 && (
-                            <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: "#1a0f00", border: "1px solid #f59e0b33" }}>
-                              <p className="text-xs font-bold mb-2" style={{ color: "#f59e0b" }}>📋 Descuentos de préstamos</p>
-                              {prestamosActivos.map(p => {
-                                const prox = p.cuotas?.find(c => c.estado === "pendiente");
-                                if (!prox) return null;
-                                const cIdx = p.cuotas.indexOf(prox);
-                                return (
-                                  <div key={p.id} className="flex justify-between items-center py-1.5" style={{ borderBottom: "1px solid #2a1800" }}>
-                                    <div className="flex-1">
-                                      <p className="text-xs" style={{ color: "#94a3b8" }}>Préstamo {p.id} · Cuota {prox.num}/{p.nCuotas}</p>
-                                      <p className="text-xs" style={{ color: "#64748b" }}>Vence: {prox.vence}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-bold text-sm" style={{ color: "#ef4444" }}>-${prox.monto}</p>
-                                      <button onClick={() => marcarCuotaCobradaJefe(p.id, cIdx)}
-                                        className="px-2 py-1 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#10b981" }}>
-                                        ✓ Cobrada
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              <div className="flex justify-between mt-2 pt-1">
-                                <p className="text-xs font-bold" style={{ color: "#f59e0b" }}>Total descuento:</p>
-                                <p className="text-xs font-bold" style={{ color: "#ef4444" }}>-${totalDescuento.toFixed(2)}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Net total */}
-                          <div className="rounded-xl p-4" style={{ backgroundColor: "#0a2a0a", border: "1px solid #10b98144" }}>
-                            <div className="flex justify-between items-center">
-                              <p className="font-bold" style={{ color: "#94a3b8" }}>💰 NETO A PAGAR</p>
-                              <p className="text-3xl font-black" style={{ color: neto >= 0 ? "#10b981" : "#ef4444" }}>${Math.max(neto, 0).toFixed(2)}</p>
-                            </div>
-                            {neto < 0 && <p className="text-xs mt-1" style={{ color: "#ef4444" }}>⚠️ El descuento supera la ganancia del período</p>}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-xs text-center py-3" style={{ color: "#f59e0b" }}>⚠️ Asigna salario en Gestionar Empleados</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {!empresa?.empleados?.length && (
-                <p className="text-center py-8 text-sm" style={{ color: "#475569" }}>No hay empleados registrados</p>
-              )}
-            </div>
-
-            {/* Export */}
-            <button onClick={() => exportarAsistencia(freq === "semanal" ? "semana" : freq === "quincenal" ? "quincenal" : "mes")}
-              className="w-full py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 mt-4" style={{ backgroundColor: "#1e293b", border: "1px solid #10b98133" }}>
-              <Download size={18} style={{ color: "#10b981" }}/>Exportar Nómina en Excel
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     // Jefe menu
     return (
       <div style={{ backgroundColor: "#0f172a", minHeight: "100vh" }} className="text-white p-4">
-        <div className="max-w-md mx-auto mt-4 pb-8">
+        <div className="max-w-md mx-auto mt-6">
+          <button onClick={() => setScreen("principal")} className="mb-6 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: "#334155" }}><Home size={15}/>Inicio</button>
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={() => setScreen("principal")} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: "#334155" }}><Home size={15}/>Inicio</button>
-            <label className="cursor-pointer" title="Subir logo">
-              <div className="rounded-full overflow-hidden flex items-center justify-center" style={{ width: 52, height: 52, backgroundColor: "#1e293b", border: empresa?.logo ? "2px solid #10b981" : "2px dashed #475569" }}>
-                {empresa?.logo ? <img src={empresa.logo} alt="logo" className="w-full h-full object-cover"/> : <span className="text-xs text-center" style={{ color: "#64748b" }}>+Logo</span>}
-              </div>
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                const file = e.target.files[0]; if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => save({ ...empresa, logo: ev.target.result });
-                reader.readAsDataURL(file);
-              }}/>
-            </label>
-          </div>
-
-          {/* Company badge */}
-          <div className="rounded-2xl p-5 mb-5" style={{ background: "linear-gradient(135deg, #0f2a1a 0%, #0f172a 100%)", border: "1px solid #10b98133" }}>
-            <div className="flex items-center gap-3">
-              <Shield size={36} style={{ color: "#10b981" }}/>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#10b981" }}>Panel Jefe</p>
-                <p className="text-2xl font-black text-white">{empresa?.nombre}</p>
-                <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{empresa?.empleados?.length || 0} empleados · {empresa?.prestamos?.filter(p=>p.estado==="activo").length || 0} préstamos activos</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Alerts */}
+          {/* Upcoming dues alert */}
           {(() => {
             const proximas = getProximasCuotas(empresa, 7);
             const vencidas = getVencidasSinPagar(empresa);
-            const hoyFaltas = (empresa?.empleados || []).filter(emp => {
-              const st = getEmpStatusForDate(emp, new Date());
-              return st.status === "falta" || st.status === "sin_registrar";
-            });
+            if (!proximas.length && !vencidas.length) return null;
             return (
-              <>
-                {hoyFaltas.length > 0 && (
-                  <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: "#1a0a0a", border: "1px solid #ef444433" }}>
-                    <p className="font-bold text-sm mb-1 flex items-center gap-2" style={{ color: "#ef4444" }}>
-                      🚨 {hoyFaltas.length} empleado{hoyFaltas.length > 1 ? "s" : ""} sin registrar hoy
-                    </p>
-                    <p className="text-xs" style={{ color: "#94a3b8" }}>{hoyFaltas.map(e => e.nombre).join(", ")}</p>
-                  </div>
+              <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#1a0f00", border: "1px solid #f59e0b44" }}>
+                <p className="font-bold text-sm mb-2 flex items-center gap-2" style={{ color: "#f59e0b" }}>
+                  <Bell size={15}/>Alertas de Pagos
+                </p>
+                {vencidas.length > 0 && (
+                  <p className="text-xs mb-1" style={{ color: "#ef4444" }}>⚠️ {vencidas.length} cuota{vencidas.length > 1 ? "s" : ""} vencida{vencidas.length > 1 ? "s" : ""} sin cobrar</p>
                 )}
-                {(vencidas.length > 0 || proximas.length > 0) && (
-                  <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: "#1a0f00", border: "1px solid #f59e0b33" }}>
-                    <p className="font-bold text-sm mb-1 flex items-center gap-2" style={{ color: "#f59e0b" }}>
-                      <Bell size={14}/>Alertas de Pagos
-                    </p>
-                    {vencidas.length > 0 && <p className="text-xs" style={{ color: "#ef4444" }}>⚠️ {vencidas.length} cuota{vencidas.length > 1 ? "s" : ""} vencida{vencidas.length > 1 ? "s" : ""} sin cobrar</p>}
-                    {proximas.length > 0 && <p className="text-xs mt-0.5" style={{ color: "#f59e0b" }}>🔔 {proximas.length} cuota{proximas.length > 1 ? "s" : ""} vence en 7 días</p>}
-                  </div>
+                {proximas.length > 0 && (
+                  <p className="text-xs" style={{ color: "#f59e0b" }}>🔔 {proximas.length} cuota{proximas.length > 1 ? "s" : ""} vence{proximas.length === 1 ? "" : "n"} en los próximos 7 días</p>
                 )}
-              </>
+                {proximas.slice(0, 3).map((item, i) => (
+                  <div key={i} className="flex justify-between mt-1">
+                    <span className="text-xs" style={{ color: "#94a3b8" }}>{item.empleadoNombre}</span>
+                    <span className="text-xs font-bold" style={{ color: "#f59e0b" }}>${item.cuota.monto} · {item.cuota.vence}</span>
+                  </div>
+                ))}
+              </div>
             );
           })()}
 
-          {/* Menu cards */}
-          <div className="space-y-3">
-            {[
-              { label: "Gestionar Empleados", desc: "Agregar, editar y administrar tu equipo", icon: Users, color: "#10b981", bg: "#10b98115", fn: () => setJefeSub("empleados") },
-              { label: "Dashboard de Asistencia", desc: "Ver entradas, salidas, faltas y tardanzas", icon: BarChart3, color: "#06b6d4", bg: "#06b6d415", fn: () => setJefeSub("dashboard") },
-              { label: "Resumen de Nómina", desc: "Calcula lo que le toca a cada empleado", icon: FileSpreadsheet, color: "#f59e0b", bg: "#f59e0b15", fn: () => setJefeSub("nomina_resumen") },
-              { label: "Exportar Asistencia Excel", desc: "Descarga el reporte del período actual", icon: Download, color: "#8b5cf6", bg: "#8b5cf615", fn: () => exportarAsistencia(dashPeriodo) },
-              { label: "Cambiar Clave", desc: "Actualizar tu contraseña de acceso", icon: Key, color: "#94a3b8", bg: "#94a3b815", fn: () => setJefeSub("clave") },
-            ].map(({ label, desc, icon: Icon, color, bg, fn }) => (
-              <button key={label} onClick={fn} className="w-full rounded-2xl p-5 text-left flex items-center gap-4 transition-all" style={{ backgroundColor: "#1e293b" }}>
-                <div className="rounded-xl p-3 flex-shrink-0" style={{ backgroundColor: bg }}>
-                  <Icon size={26} style={{ color }}/>
+          <div className="rounded-xl p-6" style={{ backgroundColor: "#1e293b" }}>
+            <div className="flex items-center gap-3 mb-6">
+              <Shield size={32} style={{ color: "#10b981" }}/>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold" style={{ color: "#10b981" }}>Panel Jefe</h2>
+                <p className="text-sm" style={{ color: "#94a3b8" }}>{empresa?.nombre}</p>
+              </div>
+              <label className="cursor-pointer" title="Subir logo de empresa">
+                <div className="rounded-full overflow-hidden flex items-center justify-center" style={{ width: 52, height: 52, backgroundColor: "#334155", border: empresa?.logo ? "2px solid #10b981" : "2px dashed #475569" }}>
+                  {empresa?.logo
+                    ? <img src={empresa.logo} alt="logo" className="w-full h-full object-cover"/>
+                    : <span className="text-xs text-center leading-tight" style={{ color: "#64748b" }}>+Logo</span>
+                  }
                 </div>
-                <div className="flex-1">
-                  <p className="font-bold text-base text-white">{label}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{desc}</p>
-                </div>
-                <ChevronRight size={18} style={{ color: "#334155" }}/>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files[0]; if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => save({ ...empresa, logo: ev.target.result });
+                  reader.readAsDataURL(file);
+                }}/>
+              </label>
+            </div>
+            <div className="space-y-2">
+              {[
+                ["Gestionar Empleados", Users, "#10b981", () => setJefeSub("empleados")],
+                ["Ver Dashboard", BarChart3, "#06b6d4", () => setJefeSub("dashboard")],
+                ["Cambiar Clave", Key, "#8b5cf6", () => setJefeSub("clave")],
+              ].map(([l, Icon, c, fn]) => (
+                <button key={l} onClick={fn} className="w-full py-4 rounded-xl text-white flex items-center gap-3 px-5 font-bold" style={{ backgroundColor: "#0f172a" }}>
+                  <Icon size={20} style={{ color: c }}/>{l}<ChevronRight size={16} className="ml-auto" style={{ color: "#475569" }}/>
+                </button>
+              ))}
+              {/* Export attendance */}
+              <button onClick={() => exportarAsistencia(dashPeriodo)} className="w-full py-4 rounded-xl text-white flex items-center gap-3 px-5 font-bold" style={{ backgroundColor: "#0f172a" }}>
+                <FileSpreadsheet size={20} style={{ color: "#10b981" }}/>Exportar Asistencia Excel<ChevronRight size={16} className="ml-auto" style={{ color: "#475569" }}/>
               </button>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -2373,119 +2087,92 @@ export default function App() {
     const pagadosPct = pct(gPagados, totalLoans);
     const cobradoPct = gTotal > 0 ? Math.round(((gTotal - gCobrar) / gTotal) * 100) : 0;
 
-    // Employees at risk across all companies
-    const empRiesgo = allEmpresas.flatMap(e =>
-      (e.datos?.empleados || [])
-        .map(emp => ({ emp, cs: calcCreditScore(emp.id, e.datos), empresa: e.nombre }))
-        .filter(x => x.cs.score === 0)
-    );
-
-    // Next 7 days dues across all companies
-    const todasProximas7 = allEmpresas.flatMap(e => getProximasCuotas(e.datos, 7).map(i => ({ ...i, empresa: e.nombre })));
-    const todasVencidas = allEmpresas.flatMap(e => getVencidasSinPagar(e.datos).map(i => ({ ...i, empresa: e.nombre })));
-
     return (
       <div style={{ backgroundColor: "#0f172a", minHeight: "100vh" }} className="text-white p-4">
-        <div className="max-w-lg mx-auto mt-4 pb-8">
-
-          {/* Header */}
+        <div className="max-w-lg mx-auto mt-4">
           <div className="flex justify-between items-center mb-5">
             <LogoNA h={50}/>
             <div className="flex gap-2">
-              <button onClick={loadEmpresas} className="p-2 rounded-lg" style={{ backgroundColor: "#1e293b" }} title="Actualizar"><RefreshCw size={15} style={{ color: "#10b981" }}/></button>
-              <button onClick={() => setScreen("principal")} className="p-2 rounded-lg" style={{ backgroundColor: "#1e293b" }} title="Inicio"><Home size={15} style={{ color: "#94a3b8" }}/></button>
+              <button onClick={loadEmpresas} className="p-2 rounded-lg" style={{ backgroundColor: "#1e293b" }}><RefreshCw size={15} style={{ color: "#10b981" }}/></button>
+              <button onClick={() => setScreen("principal")} className="p-2 rounded-lg" style={{ backgroundColor: "#1e293b" }}><Home size={15} style={{ color: "#94a3b8" }}/></button>
             </div>
           </div>
           <FlashMsg msg={msg}/>
 
-          {/* ── KPI Cards — big and bold ── */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          {/* ── KPI Cards ── */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
             {[
-              { label: "Empresas", value: allEmpresas.length, color: "#10b981", icon: "🏢" },
-              { label: "Empleados totales", value: gEmpleados, color: "#06b6d4", icon: "👥" },
-              { label: "Total desembolsado", value: `$${gTotal.toFixed(0)}`, color: "#f59e0b", icon: "💵" },
-              { label: "Por cobrar", value: `$${gCobrar.toFixed(0)}`, color: "#ef4444", icon: "📥" },
-            ].map(({ label, value, color, icon }) => (
-              <div key={label} className="rounded-2xl p-4" style={{ backgroundColor: "#1e293b", border: `1px solid ${color}22` }}>
-                <p className="text-xl mb-1">{icon}</p>
-                <p className="text-3xl font-black mb-1" style={{ color }}>{value}</p>
-                <p className="text-xs" style={{ color: "#64748b" }}>{label}</p>
+              ["Empresas activas", allEmpresas.length, "#10b981"],
+              ["Empleados totales", gEmpleados, "#06b6d4"],
+              ["Total desembolsado", `$${gTotal.toFixed(0)}`, "#f59e0b"],
+              ["Por cobrar", `$${gCobrar.toFixed(0)}`, "#ef4444"],
+              ["Préstamos activos", gActivos, "#8b5cf6"],
+              ["Cuotas vencidas", gVencidas, gVencidas > 0 ? "#ef4444" : "#10b981"],
+            ].map(([l, v, c]) => (
+              <div key={l} className="rounded-xl p-3" style={{ backgroundColor: "#1e293b" }}>
+                <p className="text-xs mb-1" style={{ color: "#64748b" }}>{l}</p>
+                <p className="text-2xl font-bold" style={{ color: c }}>{v}</p>
               </div>
             ))}
           </div>
 
-          {/* Secondary KPIs */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            {[
-              { label: "Activos", value: gActivos, color: "#8b5cf6" },
-              { label: "Pagados", value: gPagados, color: "#10b981" },
-              { label: "Vencidas", value: gVencidas, color: gVencidas > 0 ? "#ef4444" : "#10b981" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: "#1e293b" }}>
-                <p className="text-2xl font-black" style={{ color }}>{value}</p>
-                <p className="text-xs mt-0.5" style={{ color: "#475569" }}>{label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* ── CHARTS — loan status donut + recovery ── */}
+          {/* ── CHARTS ── */}
           {totalLoans > 0 && (
-            <div className="rounded-2xl p-5 mb-5" style={{ backgroundColor: "#1e293b" }}>
-              <p className="font-bold text-base mb-4 flex items-center gap-2" style={{ color: "#06b6d4" }}>
-                📊 Salud del Portafolio
-              </p>
-              <div className="flex items-center gap-5 mb-5">
-                {/* Donut chart */}
-                <svg width="110" height="110" viewBox="0 0 110 110" className="flex-shrink-0">
-                  <circle cx="55" cy="55" r="42" fill="none" stroke="#334155" strokeWidth="16"/>
-                  <circle cx="55" cy="55" r="42" fill="none" stroke="#10b981" strokeWidth="16"
-                    strokeDasharray={`${pagadosPct * 2.639} ${263.9 - pagadosPct * 2.639}`}
-                    strokeDashoffset="65.975" strokeLinecap="round"/>
-                  <circle cx="55" cy="55" r="42" fill="none" stroke="#8b5cf6" strokeWidth="16"
-                    strokeDasharray={`${activosPct * 2.639} ${263.9 - activosPct * 2.639}`}
-                    strokeDashoffset={`${65.975 - pagadosPct * 2.639}`} strokeLinecap="round"/>
-                  <text x="55" y="52" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">{totalLoans}</text>
-                  <text x="55" y="66" textAnchor="middle" fill="#64748b" fontSize="9">préstamos</text>
+            <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: "#1e293b" }}>
+              <p className="font-bold mb-4" style={{ color: "#06b6d4" }}>📊 Resumen del Negocio</p>
+
+              {/* Loan status donut */}
+              <p className="text-xs mb-2" style={{ color: "#64748b" }}>Estado de Préstamos</p>
+              <div className="flex items-center gap-4 mb-4">
+                <svg width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="35" fill="none" stroke="#334155" strokeWidth="14"/>
+                  <circle cx="45" cy="45" r="35" fill="none" stroke="#10b981" strokeWidth="14"
+                    strokeDasharray={`${pagadosPct * 2.199} ${219.9 - pagadosPct * 2.199}`}
+                    strokeDashoffset="54.975" strokeLinecap="round"/>
+                  <circle cx="45" cy="45" r="35" fill="none" stroke="#8b5cf6" strokeWidth="14"
+                    strokeDasharray={`${activosPct * 2.199} ${219.9 - activosPct * 2.199}`}
+                    strokeDashoffset={`${54.975 - pagadosPct * 2.199}`} strokeLinecap="round"/>
+                  <text x="45" y="49" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold">{totalLoans}</text>
                 </svg>
-                <div className="flex-1 space-y-3">
-                  {[["✅ Pagados", gPagados, "#10b981"], ["🟣 Activos", gActivos, "#8b5cf6"], ["⚠️ Cuotas venc.", gVencidas, "#ef4444"]].map(([l, v, c]) => (
-                    <div key={l} className="flex justify-between items-center">
-                      <span className="text-sm" style={{ color: "#94a3b8" }}>{l}</span>
-                      <span className="text-lg font-black" style={{ color: c }}>{v}</span>
+                <div className="space-y-2">
+                  {[["Pagados", gPagados, "#10b981"], ["Activos", gActivos, "#8b5cf6"], ["Vencidas", gVencidas, "#ef4444"]].map(([l, v, c]) => (
+                    <div key={l} className="flex items-center gap-2">
+                      <div className="rounded-full w-3 h-3 flex-shrink-0" style={{ backgroundColor: c }}/>
+                      <span className="text-xs" style={{ color: "#94a3b8" }}>{l}:</span>
+                      <span className="text-xs font-bold" style={{ color: c }}>{v}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Recovery bar */}
-              <p className="text-xs font-bold mb-2" style={{ color: "#64748b" }}>Recuperación de Capital</p>
-              <div className="rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#334155", height: 24 }}>
-                <div className="h-full flex items-center justify-center text-xs font-black text-white rounded-full transition-all"
-                  style={{ width: `${Math.max(cobradoPct, 5)}%`, backgroundColor: cobradoPct >= 80 ? "#10b981" : cobradoPct >= 50 ? "#f59e0b" : "#ef4444" }}>
-                  {cobradoPct}%
+              <p className="text-xs mb-1" style={{ color: "#64748b" }}>Recuperación de Capital</p>
+              <div className="rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#334155", height: 20 }}>
+                <div className="h-full flex items-center justify-center text-xs font-bold text-white rounded-full transition-all"
+                  style={{ width: `${cobradoPct}%`, minWidth: cobradoPct > 0 ? 40 : 0, backgroundColor: cobradoPct >= 80 ? "#10b981" : cobradoPct >= 50 ? "#f59e0b" : "#ef4444" }}>
+                  {cobradoPct > 5 ? `${cobradoPct}%` : ""}
                 </div>
               </div>
-              <div className="flex justify-between text-xs mt-1" style={{ color: "#475569" }}>
-                <span>Cobrado: <strong style={{ color: "#10b981" }}>${(gTotal - gCobrar).toFixed(0)}</strong></span>
-                <span>Pendiente: <strong style={{ color: "#ef4444" }}>${gCobrar.toFixed(0)}</strong></span>
+              <div className="flex justify-between text-xs" style={{ color: "#475569" }}>
+                <span>Cobrado: ${(gTotal - gCobrar).toFixed(0)}</span>
+                <span>Pendiente: ${gCobrar.toFixed(0)}</span>
               </div>
 
-              {/* Per company recovery bars */}
+              {/* Per company bars */}
               {allEmpresas.length > 1 && (
                 <>
-                  <p className="text-xs font-bold mt-4 mb-3" style={{ color: "#64748b" }}>Recuperación por Empresa</p>
+                  <p className="text-xs mt-4 mb-2" style={{ color: "#64748b" }}>Cartera por Empresa</p>
                   {allEmpresas.map(e => {
                     const tot = e.datos?.prestamos?.reduce((s, p) => s + p.montoSol, 0) || 0;
-                    const cob2 = e.datos?.prestamos?.filter(p=>p.estado==="activo").reduce((s,p)=>s+p.cuotas.filter(c=>c.estado==="pendiente").reduce((a,c)=>a+c.monto,0),0)||0;
-                    const recPct = tot > 0 ? Math.round(((tot - cob2) / tot) * 100) : 100;
+                    const pct2 = gTotal > 0 ? Math.round((tot / gTotal) * 100) : 0;
                     return (
-                      <div key={e.id} className="mb-3">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span style={{ color: "#94a3b8" }} className="font-bold">{e.nombre}</span>
-                          <span style={{ color: recPct >= 80 ? "#10b981" : recPct >= 50 ? "#f59e0b" : "#ef4444" }} className="font-black">{recPct}%</span>
+                      <div key={e.id} className="mb-2">
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span style={{ color: "#94a3b8" }}>{e.nombre}</span>
+                          <span style={{ color: "#f59e0b" }}>${tot.toFixed(0)}</span>
                         </div>
-                        <div className="rounded-full overflow-hidden" style={{ backgroundColor: "#334155", height: 10 }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${recPct}%`, backgroundColor: recPct >= 80 ? "#10b981" : recPct >= 50 ? "#f59e0b" : "#ef4444" }}/>
+                        <div className="rounded-full overflow-hidden" style={{ backgroundColor: "#334155", height: 8 }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct2}%`, backgroundColor: "#f59e0b" }}/>
                         </div>
                       </div>
                     );
@@ -2495,73 +2182,52 @@ export default function App() {
             </div>
           )}
 
-          {/* ── Employees at risk ── */}
-          {empRiesgo.length > 0 && (
-            <div className="rounded-2xl p-4 mb-5" style={{ backgroundColor: "#1a0505", border: "1px solid #ef444433" }}>
-              <p className="font-bold mb-3 flex items-center gap-2" style={{ color: "#ef4444" }}>
-                🔴 Empleados en Riesgo ({empRiesgo.length})
-              </p>
-              <p className="text-xs mb-3" style={{ color: "#64748b" }}>Cuotas vencidas sin cobrar — no recomendados para nuevos préstamos</p>
-              <div className="space-y-2">
-                {empRiesgo.map(({ emp, cs, empresa: eNombre }, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 rounded-xl" style={{ backgroundColor: "#0f172a" }}>
-                    <div>
-                      <p className="font-bold text-sm">{emp.nombre}</p>
-                      <p className="text-xs" style={{ color: "#64748b" }}>{eNombre}</p>
-                    </div>
-                    <span className="px-2 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: cs.bg, color: cs.color }}>{cs.icon} {cs.label}</span>
+          {/* ── Companies list ── */}
+          {/* Upcoming dues across all companies */}
+          {(() => {
+            const todasProximas = allEmpresas.flatMap(e => getProximasCuotas(e.datos, 7).map(i => ({ ...i, empresa: e.nombre })));
+            const todasVencidas = allEmpresas.flatMap(e => getVencidasSinPagar(e.datos).map(i => ({ ...i, empresa: e.nombre })));
+            if (!todasProximas.length && !todasVencidas.length) return null;
+            return (
+              <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#1a0f00", border: "1px solid #f59e0b44" }}>
+                <p className="font-bold text-sm mb-2 flex items-center gap-2" style={{ color: "#f59e0b" }}>
+                  <Bell size={15}/>Alertas Globales
+                </p>
+                {todasVencidas.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-xs font-bold mb-1" style={{ color: "#ef4444" }}>⚠️ {todasVencidas.length} cuota{todasVencidas.length > 1 ? "s" : ""} vencida{todasVencidas.length > 1 ? "s" : ""} sin cobrar</p>
+                    {todasVencidas.slice(0, 3).map((item, i) => (
+                      <div key={i} className="flex justify-between">
+                        <span className="text-xs" style={{ color: "#94a3b8" }}>{item.empresa} · {item.empleadoNombre}</span>
+                        <span className="text-xs font-bold" style={{ color: "#ef4444" }}>${item.cuota.monto}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                {todasProximas.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold mb-1" style={{ color: "#f59e0b" }}>🔔 Vencen en 7 días</p>
+                    {todasProximas.slice(0, 4).map((item, i) => (
+                      <div key={i} className="flex justify-between">
+                        <span className="text-xs" style={{ color: "#94a3b8" }}>{item.empresa} · {item.empleadoNombre}</span>
+                        <span className="text-xs font-bold" style={{ color: "#f59e0b" }}>${item.cuota.monto} · {item.cuota.vence}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
-          {/* ── Upcoming & overdue ── */}
-          {(todasVencidas.length > 0 || todasProximas7.length > 0) && (
-            <div className="rounded-2xl p-4 mb-5" style={{ backgroundColor: "#1a0f00", border: "1px solid #f59e0b33" }}>
-              <p className="font-bold mb-3 flex items-center gap-2" style={{ color: "#f59e0b" }}>
-                <Bell size={16}/>Alertas Globales de Cobro
-              </p>
-              {todasVencidas.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs font-bold mb-2" style={{ color: "#ef4444" }}>⚠️ Vencidas sin cobrar ({todasVencidas.length})</p>
-                  {todasVencidas.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex justify-between items-center py-1.5" style={{ borderBottom: "1px solid #2a1800" }}>
-                      <div>
-                        <p className="text-xs font-bold">{item.empleadoNombre}</p>
-                        <p className="text-xs" style={{ color: "#64748b" }}>{item.empresa}</p>
-                      </div>
-                      <p className="text-sm font-black" style={{ color: "#ef4444" }}>${item.cuota.monto}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {todasProximas7.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold mb-2" style={{ color: "#f59e0b" }}>🔔 Vencen en 7 días ({todasProximas7.length})</p>
-                  {todasProximas7.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex justify-between items-center py-1.5" style={{ borderBottom: "1px solid #2a1800" }}>
-                      <div>
-                        <p className="text-xs font-bold">{item.empleadoNombre}</p>
-                        <p className="text-xs" style={{ color: "#64748b" }}>{item.empresa} · vence {item.cuota.vence}</p>
-                      </div>
-                      <p className="text-sm font-black" style={{ color: "#f59e0b" }}>${item.cuota.monto}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Export */}
+          {/* Export button */}
           {allEmpresas.length > 0 && (
-            <button onClick={exportarReporteNomina} className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 mb-5" style={{ backgroundColor: "#1e293b", border: "1px solid #10b98133" }}>
-              <FileSpreadsheet size={20} style={{ color: "#10b981" }}/>Exportar Reporte Completo Excel
+            <button onClick={exportarReporteNomina} className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 mb-4" style={{ backgroundColor: "#1e293b", border: "1px solid #10b98133" }}>
+              <FileSpreadsheet size={18} style={{ color: "#10b981" }}/>
+              Exportar Reporte Completo Excel
             </button>
           )}
 
-          {/* ── Companies list ── */}
-          <p className="font-bold text-base mb-3" style={{ color: "#94a3b8" }}>Empresas Registradas</p>
+          <h3 className="font-bold mb-3" style={{ color: "#94a3b8" }}>Empresas</h3>
           {!allEmpresas.length ? (
             <div className="text-center py-10" style={{ color: "#334155" }}>
               <Building2 size={44} className="mx-auto mb-3 opacity-30"/>
@@ -2576,32 +2242,23 @@ export default function App() {
                 const emps = e.datos?.empleados || [];
                 const scores = emps.map(emp => calcCreditScore(emp.id, e.datos).score);
                 const noRec = scores.filter(s => s === 0).length;
-                const tot = e.datos?.prestamos?.reduce((s, p) => s + p.montoSol, 0) || 0;
-                const recPct = tot > 0 ? Math.round(((tot - cob) / tot) * 100) : 100;
                 return (
-                  <button key={e.id} onClick={() => { setSelEmpresa(e); setNaView("empresa"); }} className="w-full rounded-2xl p-5 text-left" style={{ backgroundColor: "#1e293b" }}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-xl overflow-hidden flex items-center justify-center font-black text-xl" style={{ width: 44, height: 44, backgroundColor: "#0f172a", color: "#10b981", flexShrink: 0 }}>
-                          {e.datos?.logo ? <img src={e.datos.logo} alt="" className="w-full h-full object-cover"/> : e.nombre[0].toUpperCase()}
+                  <button key={e.id} onClick={() => { setSelEmpresa(e); setNaView("empresa"); }} className="w-full rounded-xl p-4 text-left" style={{ backgroundColor: "#1e293b" }}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {e.datos?.logo && <img src={e.datos.logo} alt="" className="rounded-full object-cover" style={{ width: 24, height: 24 }}/>}
+                          <p className="font-bold">{e.nombre}</p>
                         </div>
-                        <div>
-                          <p className="font-black text-base">{e.nombre}</p>
-                          <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{emps.length} empleados · {act} préstamos activos</p>
-                        </div>
+                        <p className="text-xs" style={{ color: "#64748b" }}>{emps.length} empleados · {act} préstamos activos</p>
+                        {venc > 0 && <p className="text-xs mt-0.5" style={{ color: "#ef4444" }}>⚠️ {venc} cuota{venc > 1 ? "s" : ""} vencida{venc > 1 ? "s" : ""}</p>}
+                        {noRec > 0 && <p className="text-xs mt-0.5" style={{ color: "#f59e0b" }}>🔴 {noRec} no recomendado{noRec > 1 ? "s" : ""}</p>}
                       </div>
-                      <ChevronRight size={16} style={{ color: "#334155" }} className="mt-1"/>
+                      <div className="text-right flex flex-col items-end gap-1">
+                        {cob > 0 && <p className="text-sm font-bold" style={{ color: "#ef4444" }}>${cob.toFixed(0)}</p>}
+                        <ChevronRight size={15} style={{ color: "#475569" }}/>
+                      </div>
                     </div>
-                    {/* Recovery mini bar */}
-                    <div className="rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#334155", height: 6 }}>
-                      <div className="h-full rounded-full" style={{ width: `${recPct}%`, backgroundColor: recPct >= 80 ? "#10b981" : recPct >= 50 ? "#f59e0b" : "#ef4444" }}/>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span style={{ color: "#475569" }}>Recuperación: <strong style={{ color: recPct >= 80 ? "#10b981" : recPct >= 50 ? "#f59e0b" : "#ef4444" }}>{recPct}%</strong></span>
-                      <span style={{ color: "#475569" }}>Por cobrar: <strong style={{ color: cob > 0 ? "#ef4444" : "#10b981" }}>${cob.toFixed(0)}</strong></span>
-                    </div>
-                    {venc > 0 && <p className="text-xs mt-1" style={{ color: "#ef4444" }}>⚠️ {venc} cuota{venc > 1 ? "s" : ""} vencida{venc > 1 ? "s" : ""}</p>}
-                    {noRec > 0 && <p className="text-xs mt-0.5" style={{ color: "#f59e0b" }}>🔴 {noRec} empleado{noRec > 1 ? "s" : ""} no recomendado{noRec > 1 ? "s" : ""}</p>}
                   </button>
                 );
               })}
@@ -2616,8 +2273,16 @@ export default function App() {
 }
 
 
-
-ReactDOM.render(<App />, document.getElementById('root'));
+// Mount the app
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
 </script>
+ <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("service-worker.js");
+  });
+}
+</script> 
 </body>
 </html>
