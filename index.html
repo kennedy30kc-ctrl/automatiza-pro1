@@ -619,53 +619,65 @@ useEffect(() => {
 
 const startCam = async () => {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-  video: true
-});
-
-    videoRef.current.srcObject = stream;
-    await videoRef.current.play();
     setCamActive(true);
 
-    const loop = () => {
-      const v = videoRef.current;
-      const c = canvasRef.current;
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
 
-      if (v?.videoWidth && c) {
-        c.width = v.videoWidth;
-        c.height = v.videoHeight;
-
-        c.getContext("2d").drawImage(v, 0, 0);
-
-        if (window.jsQR) {
-          const img = c.getContext("2d").getImageData(0, 0, c.width, c.height);
-          const code = window.jsQR(img.data, img.width, img.height);
-
-          if (code?.data) {
-            try {
-              const d = JSON.parse(code.data);
-
-              const emp = empresa?.empleados?.find(
-                e => e.nombre === d.n && e.clave === d.c
-              );
-
-              if (emp) {
-                stopCam();
-                setEmpleadoId(emp.id);
-                return;
-              }
-            } catch {}
-          }
+        if (!videoRef.current) {
+          flash("No se encontró la ventana de cámara. Intenta otra vez.", "err");
+          setCamActive(false);
+          return;
         }
+
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        const loop = () => {
+          const v = videoRef.current;
+          const c = canvasRef.current;
+
+          if (v?.videoWidth && c) {
+            c.width = v.videoWidth;
+            c.height = v.videoHeight;
+
+            const ctx = c.getContext("2d");
+            ctx.drawImage(v, 0, 0);
+
+            if (window.jsQR) {
+              const img = ctx.getImageData(0, 0, c.width, c.height);
+              const code = window.jsQR(img.data, img.width, img.height);
+
+              if (code?.data) {
+                try {
+                  const d = JSON.parse(code.data);
+                  const emp = empresa?.empleados?.find(e => e.nombre === d.n && e.clave === d.c);
+
+                  if (emp) {
+                    stopCam();
+                    setEmpleadoId(emp.id);
+                    return;
+                  }
+                } catch {}
+              }
+            }
+          }
+
+          rafRef.current = requestAnimationFrame(loop);
+        };
+
+        rafRef.current = requestAnimationFrame(loop);
+      } catch {
+        flash("No se pudo acceder a la cámara. Usa entrada manual.", "err");
+        setCamActive(false);
       }
-
-      rafRef.current = requestAnimationFrame(loop);
-    };
-
-    rafRef.current = requestAnimationFrame(loop);
-
+    }, 300);
   } catch {
-    flash("No se pudo acceder a la cámara. Usa entrada manual.", "err");
+    flash("No se pudo iniciar la cámara.", "err");
+    setCamActive(false);
   }
 };
 
