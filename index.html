@@ -620,8 +620,8 @@ useEffect(() => {
 const startCam = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
-    });
+  video: true
+});
 
     videoRef.current.srcObject = stream;
     await videoRef.current.play();
