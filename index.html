@@ -555,7 +555,13 @@ function App() {
     });
   }, []);
 
-  useEffect(() => { init(); }, []);
+useEffect(() => {
+  if (window.storage) {
+    init();
+  } else {
+    window.addEventListener("firebaseReady", init, { once: true });
+  }
+}, []);
 
   const init = async () => {
     const id = await st.get("tablet_empresa_id", false);
