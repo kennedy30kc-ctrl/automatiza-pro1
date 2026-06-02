@@ -14,7 +14,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -102,13 +102,6 @@ const MapPin = ({size=24,...p}) => <svg {...iconProps(size)} {...p}><path d="M21
 
 // XLSX shim
 const XLSX = { utils: window.XLSX?.utils, writeFile: window.XLSX?.writeFile };
-
-  LogIn, LogOut, CreditCard, QrCode, CheckCircle2, AlertCircle,
-  Home, Settings, Users, Building2, Phone, Mail, MapPin,
-  Eye, EyeOff, Edit2, Trash2, Shield, BarChart3, ChevronLeft,
-  ChevronRight, RefreshCw, Check, X, AlertTriangle, Key, Bell, Download, FileSpreadsheet
-} from "lucide-react";
-
 // ══════════════════════════════════════════
 // LOGOS
 // ══════════════════════════════════════════
@@ -577,7 +570,7 @@ export default function App() {
 
   useEffect(() => {
     ["https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js",
-     "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"].forEach(src => {
+     "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"].forEach(src => {
       if (!document.querySelector(`script[src="${src}"]`)) {
         const s = document.createElement("script"); s.src = src; document.head.appendChild(s);
       }
