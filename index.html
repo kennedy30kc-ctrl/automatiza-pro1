@@ -627,43 +627,68 @@ const startCam = async () => {
           video: true
         });
 
-        if (!videoRef.current) {
-          flash("No se encontró la ventana de cámara. Intenta otra vez.", "err");
+        const v = videoRef.current;
+        const c = canvasRef.current;
+
+        if (!v || !c) {
+          flash("No se encontró la ventana de cámara.", "err");
           setCamActive(false);
           return;
         }
 
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        v.srcObject = stream;
+        await v.play();
 
-        const loop = () => {
-          const v = videoRef.current;
-          const c = canvasRef.current;
+        const detector = "BarcodeDetector" in window
+          ? new BarcodeDetector({ formats: ["qr_code"] })
+          : null;
 
-          if (v?.videoWidth && c) {
-            c.width = v.videoWidth;
-            c.height = v.videoHeight;
+        const loop = async () => {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
 
-            const ctx = c.getContext("2d");
-           ctx.drawImage(v, 0, 0, c.width, c.height);
+          if (video?.videoWidth && canvas) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
 
-            if (window.jsQR) {
-              const img = ctx.getImageData(0, 0, c.width, c.height);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            let qrText = null;
+
+            if (detector) {
+              try {
+                const codes = await detector.detect(video);
+                if (codes.length > 0) qrText = codes[0].rawValue;
+              } catch {}
+            }
+
+            if (!qrText && window.jsQR) {
+              const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
               const code = window.jsQR(img.data, img.width, img.height, {
-  inversionAttempts: "attemptBoth"
-});
+                inversionAttempts: "attemptBoth"
+              });
+              if (code?.data) qrText = code.data;
+            }
 
-              if (code?.data) {
-                try {
-                  const d = JSON.parse(code.data);
-                  const emp = empresa?.empleados?.find(e => e.nombre === d.n && e.clave === d.c);
+            if (qrText) {
+              try {
+                const d = JSON.parse(qrText);
+                const emp = empresa?.empleados?.find(e =>
+                  String(e.nombre).trim().toLowerCase() === String(d.n).trim().toLowerCase() &&
+                  String(e.clave).trim() === String(d.c).trim()
+                );
 
-                  if (emp) {
-                    stopCam();
-                    setEmpleadoId(emp.id);
-                    return;
-                  }
-                } catch {}
+                if (emp) {
+                  stopCam();
+                  setEmpleadoId(emp.id);
+                  flash("✅ QR leído correctamente");
+                  return;
+                } else {
+                  flash("QR leído, pero no coincide con ningún empleado.", "err");
+                }
+              } catch {
+                flash("QR leído, pero no es válido para este sistema.", "err");
               }
             }
           }
@@ -672,11 +697,13 @@ const startCam = async () => {
         };
 
         rafRef.current = requestAnimationFrame(loop);
+
       } catch {
         flash("No se pudo acceder a la cámara. Usa entrada manual.", "err");
         setCamActive(false);
       }
     }, 300);
+
   } catch {
     flash("No se pudo iniciar la cámara.", "err");
     setCamActive(false);
