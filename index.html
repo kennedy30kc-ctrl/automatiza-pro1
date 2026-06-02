@@ -618,6 +618,90 @@ useEffect(() => {
   };
 
   const startCam = async () => {
+  try {
+    setCamActive(true);
+
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        const v = videoRef.current;
+        const c = canvasRef.current;
+
+        if (!v || !c) {
+          flash("No se pudo iniciar la vista de cámara. Intenta de nuevo.", "err");
+          stream.getTracks().forEach(t => t.stop());
+          setCamActive(false);
+          return;
+        }
+
+        v.srcObject = stream;
+        await v.play();
+
+        const loop = () => {
+          if (!videoRef.current || !canvasRef.current) return;
+
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+
+          if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            if (window.jsQR) {
+              const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const code = window.jsQR(img.data, img.width, img.height, {
+                inversionAttempts: "dontInvert"
+              });
+
+              if (code?.data) {
+                try {
+                  const d = JSON.parse(code.data);
+                  const emp = empresa?.empleados?.find(e =>
+                    String(e.nombre).trim().toLowerCase() === String(d.n).trim().toLowerCase() &&
+                    String(e.clave).trim() === String(d.c).trim()
+                  );
+
+                  if (emp) {
+                    stopCam();
+                    setEmpleadoId(emp.id);
+                    flash("✅ QR leído correctamente");
+                    return;
+                  } else {
+                    flash("QR leído, pero no coincide con ningún empleado.", "err");
+                  }
+                } catch (e) {
+                  flash("QR no válido para este sistema.", "err");
+                }
+              }
+            }
+          }
+
+          rafRef.current = requestAnimationFrame(loop);
+        };
+
+        rafRef.current = requestAnimationFrame(loop);
+      } catch (e) {
+        console.error("Error cámara:", e);
+        flash("No se pudo acceder a la cámara. Revisa permisos o usa entrada manual.", "err");
+        setCamActive(false);
+      }
+    }, 300);
+  } catch (e) {
+    console.error("Error startCam:", e);
+    flash("No se pudo iniciar la cámara.", "err");
+    setCamActive(false);
+  }
+};
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       videoRef.current.srcObject = stream;
