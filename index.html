@@ -645,11 +645,13 @@ const startCam = async () => {
             c.height = v.videoHeight;
 
             const ctx = c.getContext("2d");
-            ctx.drawImage(v, 0, 0);
+           ctx.drawImage(v, 0, 0, c.width, c.height);
 
             if (window.jsQR) {
               const img = ctx.getImageData(0, 0, c.width, c.height);
-              const code = window.jsQR(img.data, img.width, img.height);
+              const code = window.jsQR(img.data, img.width, img.height, {
+  inversionAttempts: "attemptBoth"
+});
 
               if (code?.data) {
                 try {
