@@ -728,7 +728,7 @@ const startCam = async () => {
       const tryGen = () => {
         if (window.QRCode) {
           try { new window.QRCode(qrRef.current, text: `CREDENCIAL DIGITAL
-Empresa: ${empresaNombre || ""}
+Empresa: ${empresa?.nombre || "Automatiza Pro"}
 Empleado: ${emp.nombre || ""}
 Cédula: ${emp.cedula || "No registrada"}
 Teléfono: ${emp.telefono || "No registrado"}
