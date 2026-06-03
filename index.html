@@ -266,7 +266,7 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
       ctx.font = "bold 28px Arial Black, Arial";
       ctx.fillText(empresaNombre || "", 105, 40);
       ctx.fillStyle = "#94a3b8"; ctx.font = "13px Arial";
-      ctx.fillText("Tarjeta de Acceso de Empleado", 105, 65);
+      ctx.fillText("Credencial Inteligente de Empleado", 105, 65);
 
       // Year right
       ctx.fillStyle = "#64748b"; ctx.font = "12px Arial";
@@ -344,9 +344,9 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
       if (qrCanvas) ctx.drawImage(qrCanvas, qX, qY, 124, 124);
       ctx.fillStyle = "#64748b"; ctx.font = "bold 11px Arial";
       ctx.textAlign = "center";
-      ctx.fillText("CÓDIGO DE ACCESO", qX + 62, qY + 140);
+      ctx.fillText("FICHA DIGITAL", qX + 62, qY + 140);
       ctx.font = "10px Arial";
-      ctx.fillText("Escanear en tablet", qX + 62, qY + 156);
+      ctx.fillText("Escanear para validar", qX + 62, qY + 156);
       ctx.textAlign = "left";
 
       // ── Bottom footer ──
@@ -401,7 +401,7 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
             </div>
             <div className="flex-1">
               <p className="font-black text-white text-lg leading-tight">{empresaNombre}</p>
-              <p className="text-xs" style={{ color: "#94a3b8" }}>Tarjeta de Acceso de Empleado</p>
+              <p className="text-xs" style={{ color: "#94a3b8" }}>Credencial Inteligente de Empleado</p>
             </div>
             <p className="text-xs" style={{ color: "#64748b" }}>{new Date().getFullYear()}</p>
           </div>
@@ -449,7 +449,7 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
               <div className="bg-white p-2 rounded-xl shadow-sm" style={{ border: "1px solid #e2e8f0" }}>
                 <div ref={qrRef}/>
               </div>
-              <p className="text-xs font-bold text-center" style={{ color: "#64748b" }}>Acceso</p>
+              <p className="text-xs font-bold text-center" style={{ color: "#64748b" }}>Perfil Digital</p>
             </div>
           </div>
 
@@ -467,9 +467,9 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
           className="w-full py-4 rounded-xl font-bold text-white text-lg disabled:opacity-50"
           style={{ backgroundColor: "#1e293b" }}
         >
-          {qrReady ? "⬇️ Descargar Carnet PNG" : "Generando QR..."}
+          {qrReady ? "⬇️ Descargar Carnet PNG" : "Generando ficha digital..."}
         </button>
-        <p className="text-center text-xs mt-2" style={{ color: "#94a3b8" }}>El empleado guarda esta imagen en su teléfono para acceder</p>
+        <p className="text-center text-xs mt-2" style={{ color: "#94a3b8" }}>El empleado guarda esta credencial digital para identificación y validación</p>
       </div>
     </div>
   );
@@ -1196,6 +1196,7 @@ const startCam = async () => {
           <h1 className="text-4xl font-bold" style={{ color: "#10b981" }}>Automatiza Pro</h1>
           <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>{empresa?.nombre}</p>
           <p style={{ color: "#10b981", fontSize: "11px" }} className="mt-1">by Nómina Activa</p>
+          <p style={{ color: "#64748b", fontSize: "11px" }} className="mt-3">Entrada, salida y adelanto de nómina con PIN personal</p>
         </div>
         <div className="space-y-4 mb-5">
           <button onClick={() => setScreen("entrada")} className="w-full py-6 rounded-xl font-bold text-white text-lg" style={{ backgroundColor: "#10b981" }}>
@@ -1229,12 +1230,12 @@ const startCam = async () => {
   const empActual = empleadoId ? empresa?.empleados?.find(e => e.id === empleadoId) : null;
   const existeNombre = nombreInput.length > 1 && empresa?.empleados?.find(e => e.nombre.toLowerCase() === nombreInput.trim().toLowerCase());
 
-  const verifyBlock = (color) => (
+  const verifyBlock = (color, accion = "continuar") => (
     <div className="space-y-3">
-      <button onClick={startCam} className="w-full py-4 rounded-lg font-bold text-white flex items-center justify-center gap-2" style={{ backgroundColor: color }}>
-        <QrCode size={20}/>ESCANEAR TARJETA QR
-      </button>
-      <p className="text-center text-xs" style={{ color: "#475569" }}>──── O INGRESAR MANUALMENTE ────</p>
+      <div className="rounded-lg p-3 text-center" style={{ backgroundColor: "#0f172a", border: `1px solid ${color}55` }}>
+        <p className="text-sm font-bold" style={{ color }}>Ingreso con PIN personal</p>
+        <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>Escribe tu nombre y clave para {accion}.</p>
+      </div>
       <input
         type="text"
         placeholder="Tu nombre completo"
@@ -1245,7 +1246,7 @@ const startCam = async () => {
       />
       <input
         type="password"
-        placeholder="Tu clave personal"
+        placeholder="PIN o clave personal"
         value={claveInput}
         onChange={e => setClaveInput(e.target.value)}
         className="w-full px-4 py-3 rounded-lg text-black text-sm"
@@ -1264,10 +1265,10 @@ const startCam = async () => {
       <button
         onClick={verificar}
         disabled={!nombreInput.trim() || !claveInput.trim()}
-        className="w-full py-3 rounded-lg font-bold text-white disabled:opacity-50"
+        className="w-full py-4 rounded-lg font-bold text-white disabled:opacity-50 text-lg"
         style={{ backgroundColor: color }}
       >
-        VERIFICAR IDENTIDAD
+        CONTINUAR
       </button>
     </div>
   );
@@ -1279,7 +1280,7 @@ const startCam = async () => {
         <BackBtn onClick={goHome}/>
         <div className="rounded-xl p-6" style={{ backgroundColor: "#1e293b", borderTop: "4px solid #10b981" }}>
           <h2 className="text-2xl font-bold mb-1" style={{ color: "#10b981" }}>ENTRADA</h2>
-          <p className="text-sm mb-5" style={{ color: "#94a3b8" }}>Registra tu hora de ingreso</p>
+          <p className="text-sm mb-5" style={{ color: "#94a3b8" }}>Registra tu hora de ingreso con tu PIN personal</p>
           <FlashMsg msg={msg}/>
           {empActual ? (
             <>
@@ -1287,7 +1288,7 @@ const startCam = async () => {
                 {esNuevo && (
                   <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#1a2e1a", border: "1px solid #10b98155" }}>
                     <p className="text-sm font-bold" style={{ color: "#10b981" }}>✅ Tarjeta digital creada</p>
-                    <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>Dirígete a Recursos Humanos para recibir tu código QR de acceso.</p>
+                    <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>Dirígete a Recursos Humanos para completar y descargar tu credencial digital.</p>
                   </div>
                 )}
                 <p className="text-xs" style={{ color: "#94a3b8" }}>Empleado verificado</p>
@@ -1298,7 +1299,7 @@ const startCam = async () => {
             </>
           ) : camActive
             ? <CamView color="#10b981" videoRef={videoRef} canvasRef={canvasRef} onStop={stopCam}/>
-            : verifyBlock("#10b981")
+            : verifyBlock("#10b981", "registrar tu entrada")
           }
         </div>
       </div>
@@ -1312,7 +1313,7 @@ const startCam = async () => {
         <BackBtn onClick={goHome}/>
         <div className="rounded-xl p-6" style={{ backgroundColor: "#1e293b", borderTop: "4px solid #06b6d4" }}>
           <h2 className="text-2xl font-bold mb-1" style={{ color: "#06b6d4" }}>SALIDA</h2>
-          <p className="text-sm mb-5" style={{ color: "#94a3b8" }}>Registra tu hora de salida</p>
+          <p className="text-sm mb-5" style={{ color: "#94a3b8" }}>Registra tu hora de salida con tu PIN personal</p>
           <FlashMsg msg={msg}/>
           {empActual ? (
             <>
@@ -1325,7 +1326,7 @@ const startCam = async () => {
             </>
           ) : camActive
             ? <CamView color="#06b6d4" videoRef={videoRef} canvasRef={canvasRef} onStop={stopCam}/>
-            : verifyBlock("#06b6d4")
+            : verifyBlock("#06b6d4", "registrar tu salida")
           }
         </div>
       </div>
@@ -1468,7 +1469,7 @@ const startCam = async () => {
             </>
           ) : camActive
             ? <CamView color="#f59e0b" videoRef={videoRef} canvasRef={canvasRef} onStop={stopCam}/>
-            : verifyBlock("#f59e0b")
+            : verifyBlock("#f59e0b", "solicitar tu adelanto")
           }
         </div>
       </div>
