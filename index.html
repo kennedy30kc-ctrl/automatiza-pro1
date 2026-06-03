@@ -217,7 +217,16 @@ function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
       if (window.QRCode) {
         try {
           new window.QRCode(qrRef.current, {
-            text: JSON.stringify({ n: emp.nombre, c: emp.clave }),
+        text: `CREDENCIAL DIGITAL
+Empresa: ${empresaNombre || ""}
+Empleado: ${emp.nombre || ""}
+Cédula/ID: ${emp.cedula || "No registrada"}
+Teléfono: ${emp.telefono || "No registrado"}
+Correo: ${emp.correo || "No registrado"}
+Estado: ACTIVO
+ID interno: ${emp.id}
+Emitida: ${new Date().toLocaleDateString("es-ES")}
+Automatiza Pro - Nómina Activa`,
             width: 120, height: 120,
             colorDark: "#1e293b", colorLight: "#ffffff"
           });
@@ -718,7 +727,16 @@ const startCam = async () => {
       qrRef.current.innerHTML = "";
       const tryGen = () => {
         if (window.QRCode) {
-          try { new window.QRCode(qrRef.current, { text: JSON.stringify({ n: emp.nombre, c: emp.clave }), width: 180, height: 180 }); }
+          try { new window.QRCode(qrRef.current, text: `CREDENCIAL DIGITAL
+Empresa: ${empresaNombre || ""}
+Empleado: ${emp.nombre || ""}
+Cédula: ${emp.cedula || "No registrada"}
+Teléfono: ${emp.telefono || "No registrado"}
+Correo: ${emp.correo || "No registrado"}
+Estado: ACTIVO
+ID: ${emp.id}
+Emitida: ${new Date().toLocaleDateString("es-ES")}
+Automatiza Pro - Nómina Activa`,, width: 180, height: 180 }); }
           catch { qrRef.current.innerHTML = `<p style="color:#94a3b8;font-size:11px;padding:12px">Datos: ${emp.nombre}</p>`; }
         } else setTimeout(tryGen, 400);
       };
