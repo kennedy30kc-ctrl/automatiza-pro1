@@ -727,7 +727,9 @@ const startCam = async () => {
       qrRef.current.innerHTML = "";
       const tryGen = () => {
         if (window.QRCode) {
-          try { new window.QRCode(qrRef.current, text: `CREDENCIAL DIGITAL
+          try {
+            new window.QRCode(qrRef.current, {
+              text: `CREDENCIAL DIGITAL
 Empresa: ${empresa?.nombre || "Automatiza Pro"}
 Empleado: ${emp.nombre || ""}
 Cédula: ${emp.cedula || "No registrada"}
@@ -736,9 +738,16 @@ Correo: ${emp.correo || "No registrado"}
 Estado: ACTIVO
 ID: ${emp.id}
 Emitida: ${new Date().toLocaleDateString("es-ES")}
-Automatiza Pro - Nómina Activa`,, width: 180, height: 180 }); }
-          catch { qrRef.current.innerHTML = `<p style="color:#94a3b8;font-size:11px;padding:12px">Datos: ${emp.nombre}</p>`; }
-        } else setTimeout(tryGen, 400);
+Automatiza Pro - Nómina Activa`,
+              width: 180,
+              height: 180
+            });
+          } catch {
+            qrRef.current.innerHTML = `<p style="color:#94a3b8;font-size:11px;padding:12px">Datos: ${emp.nombre}</p>`;
+          }
+        } else {
+          setTimeout(tryGen, 400);
+        }
       };
       tryGen();
     }, 100);
