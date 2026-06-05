@@ -206,27 +206,48 @@ function CamView({ color, videoRef, canvasRef, onStop }) {
 // ══════════════════════════════════════════
 // CARD VIEW COMPONENT
 // ══════════════════════════════════════════
-function CardView({ emp, empresaNombre, empresaLogo, onClose, onPhotoUpload }) {
+function CardView({ emp, empresaNombre, empresaLogo, prestamos = [], onClose, onPhotoUpload }) {
   const qrRef = useRef(null);
   const [qrReady, setQrReady] = useState(false);
 
-  useEffect(() => {
-    if (!qrRef.current) return;
-    qrRef.current.innerHTML = "";
-    const tryGen = () => {
-      if (window.QRCode) {
-        try {
-          new window.QRCode(qrRef.current, {
-        text: `CREDENCIAL DIGITAL
+  const buildQRText = () => {
+    const hoy = new Date().toLocaleDateString("es-ES");
+    const regsHoy = (emp.registros || []).filter(r => r.fecha === hoy);
+    const ultimaEntrada = [...regsHoy].reverse().find(r => r.tipo === "in");
+    const ultimoCierre = [...regsHoy].reverse().find(r => r.salida);
+    const prestActivos = (prestamos || []).filter(p => String(p.empId) === String(emp.id) && p.estado === "activo");
+    const totalPendiente = prestActivos.reduce((sum, p) => {
+      const pendiente = (p.cuotas || []).filter(c => c.estado === "pendiente").reduce((s, c) => s + (parseFloat(c.monto) || 0), 0);
+      return sum + pendiente;
+    }, 0);
+    return `CREDENCIAL DIGITAL
 Empresa: ${empresaNombre || ""}
 Empleado: ${emp.nombre || ""}
 Cédula/ID: ${emp.cedula || "No registrada"}
 Teléfono: ${emp.telefono || "No registrado"}
 Correo: ${emp.correo || "No registrado"}
+Fecha consulta: ${hoy}
+Hora entrada: ${ultimaEntrada?.horaReg || "Sin entrada hoy"}
+Hora salida: ${ultimoCierre?.salida ? new Date(ultimoCierre.salida).toLocaleTimeString("es-ES") : "Sin salida hoy"}
+Horas trabajadas hoy: ${ultimoCierre?.hsTrab || "0.00"}
+Préstamos pendientes: ${prestActivos.length ? "SÍ" : "NO"}
+Cantidad préstamos activos: ${prestActivos.length}
+Saldo pendiente aprox.: $${totalPendiente.toFixed(2)}
 Estado: ACTIVO
 ID interno: ${emp.id}
 Emitida: ${new Date().toLocaleDateString("es-ES")}
-Automatiza Pro - Nómina Activa`,
+Automatiza Pro - Nómina Activa`;
+  };
+
+  useEffect(() => {
+    if (!qrRef.current) return;
+    setQrReady(false);
+    qrRef.current.innerHTML = "";
+    const tryGen = () => {
+      if (window.QRCode) {
+        try {
+          new window.QRCode(qrRef.current, {
+        text: buildQRText(),
             width: 120, height: 120,
             colorDark: "#1e293b", colorLight: "#ffffff"
           });
@@ -235,7 +256,7 @@ Automatiza Pro - Nómina Activa`,
       } else { setTimeout(tryGen, 400); }
     };
     tryGen();
-  }, [emp]);
+  }, [emp, empresaNombre, prestamos]);
 
   const downloadCard = () => {
     const W = 900; const H = 520;
@@ -350,7 +371,14 @@ Automatiza Pro - Nómina Activa`,
       if (ctx.roundRect) { ctx.roundRect(qX - 14, qY - 14, 152, 180, 10); ctx.fill(); }
       else { ctx.fillRect(qX - 14, qY - 14, 152, 180); }
       ctx.shadowBlur = 0;
-      if (qrCanvas) ctx.drawImage(qrCanvas, qX, qY, 124, 124);
+      if (qrCanvas) {
+        ctx.drawImage(qrCanvas, qX, qY, 124, 124);
+      } else {
+        ctx.fillStyle = "#e2e8f0"; ctx.fillRect(qX, qY, 124, 124);
+        ctx.fillStyle = "#0f172a"; ctx.font = "bold 12px Arial"; ctx.textAlign = "center";
+        ctx.fillText("QR", qX + 62, qY + 68);
+        ctx.textAlign = "left";
+      }
       ctx.fillStyle = "#64748b"; ctx.font = "bold 11px Arial";
       ctx.textAlign = "center";
       ctx.fillText("FICHA DIGITAL", qX + 62, qY + 140);
@@ -522,6 +550,8 @@ function App() {
   const [horaSalidaManual, setHoraSalidaManual] = useState("");
   const [horaEntradaEdit, setHoraEntradaEdit] = useState(false);
   const [logoEdit, setLogoEdit] = useState(false);
+  const [nombreEmpresaEdit, setNombreEmpresaEdit] = useState(false);
+  const [nombreEmpresaInput, setNombreEmpresaInput] = useState("");
   // password change
   const [claveActual, setClaveActual] = useState("");
   const [claveNueva, setClaveNueva] = useState("");
@@ -857,6 +887,14 @@ Automatiza Pro - Nómina Activa`,
   const loginJefe = () => {
     if (jefePass === empresa?.claveJefe) { setScreen("jefe"); setJefePass(""); setShowPass(false); }
     else flash("Clave incorrecta", "err");
+  };
+
+  const guardarNombreEmpresa = () => {
+    const nuevoNombre = nombreEmpresaInput.trim();
+    if (!nuevoNombre) { flash("El nombre de la empresa no puede quedar vacío", "err"); return; }
+    save({ ...empresa, nombre: nuevoNombre });
+    setNombreEmpresaEdit(false);
+    flash("✅ Nombre de empresa actualizado");
   };
 
   const clearEmpForm = () => {
@@ -1535,6 +1573,7 @@ Automatiza Pro - Nómina Activa`,
         emp={qrEmp}
         empresaNombre={empresa?.nombre}
         empresaLogo={empresa?.logo}
+        prestamos={empresa?.prestamos || []}
         onClose={() => setQrEmp(null)}
         onPhotoUpload={(e) => {
           const file = e.target.files[0];
@@ -1898,7 +1937,18 @@ Automatiza Pro - Nómina Activa`,
               <Shield size={32} style={{ color: "#10b981" }}/>
               <div className="flex-1">
                 <h2 className="text-xl font-bold" style={{ color: "#10b981" }}>Panel Jefe</h2>
-                <p className="text-sm" style={{ color: "#94a3b8" }}>{empresa?.nombre}</p>
+                {!nombreEmpresaEdit ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm" style={{ color: "#94a3b8" }}>{empresa?.nombre}</p>
+                    <button onClick={() => { setNombreEmpresaInput(empresa?.nombre || ""); setNombreEmpresaEdit(true); }} className="text-xs underline" style={{ color: "#06b6d4" }}>editar</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 mt-2">
+                    <input type="text" value={nombreEmpresaInput} onChange={e => setNombreEmpresaInput(e.target.value)} onKeyDown={e => e.key === "Enter" && guardarNombreEmpresa()} className="flex-1 px-2 py-1 rounded text-black text-xs" style={{ backgroundColor: "#e2e8f0" }} placeholder="Nombre de la empresa"/>
+                    <button onClick={guardarNombreEmpresa} className="px-2 py-1 rounded text-xs font-bold text-white" style={{ backgroundColor: "#10b981" }}>OK</button>
+                    <button onClick={() => setNombreEmpresaEdit(false)} className="px-2 py-1 rounded text-xs text-white bg-gray-600">✕</button>
+                  </div>
+                )}
               </div>
               <label className="cursor-pointer" title="Subir logo de empresa">
                 <div className="rounded-full overflow-hidden flex items-center justify-center" style={{ width: 52, height: 52, backgroundColor: "#334155", border: empresa?.logo ? "2px solid #10b981" : "2px dashed #475569" }}>
@@ -1963,7 +2013,7 @@ Automatiza Pro - Nómina Activa`,
     // ── Tarjeta NA (must be before empleado check) ──
     if (naView === "tarjeta_na" && selEmpId2 && selEmpresa) {
       const empData = selEmpresa.datos?.empleados?.find(e => e.id === selEmpId2);
-      return <CardView emp={empData} empresaNombre={selEmpresa.nombre} empresaLogo={selEmpresa.datos?.logo} onClose={() => setNaView("empleado")}/>;
+      return <CardView emp={empData} empresaNombre={selEmpresa.datos?.nombre || selEmpresa.nombre} empresaLogo={selEmpresa.datos?.logo} prestamos={selEmpresa.datos?.prestamos || []} onClose={() => setNaView("empleado")}/>;
     }
 
     if (naView === "empleado" && selEmpId2 && selEmpresa) {
